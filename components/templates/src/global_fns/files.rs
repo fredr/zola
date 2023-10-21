@@ -11,6 +11,8 @@ use libs::sha2::{digest, Sha256, Sha384, Sha512};
 use libs::tera::{from_value, to_value, Function as TeraFn, Result, Value};
 use utils::site::resolve_internal_link;
 
+use super::helpers::make_path_with_lang;
+
 fn compute_hash<D: digest::Digest>(data: &[u8], as_base64: bool) -> String
 where
     digest::Output<D>: core::fmt::LowerHex,
@@ -42,23 +44,6 @@ impl GetUrl {
     ) -> Self {
         Self { base_path, config, permalinks, output_path }
     }
-}
-
-fn make_path_with_lang(path: String, lang: &str, config: &Config) -> Result<String> {
-    if lang == config.default_language {
-        return Ok(path);
-    }
-
-    if !config.other_languages().contains_key(lang) {
-        return Err(
-            format!("`{}` is not an authorized language (check config.languages).", lang).into()
-        );
-    }
-
-    let mut split_path: Vec<String> = path.split('.').map(String::from).collect();
-    let ilast = split_path.len() - 1;
-    split_path[ilast] = format!("{}.{}", lang, split_path[ilast]);
-    Ok(split_path.join("."))
 }
 
 impl TeraFn for GetUrl {

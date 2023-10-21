@@ -1,9 +1,12 @@
+use config::Config;
 use content::{Library, Taxonomy, TaxonomyTerm};
 use libs::tera::{from_value, to_value, Function as TeraFn, Result, Value};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 use utils::slugs::{slugify_paths, SlugifyStrategy};
+
+use crate::global_fns::helpers::make_path_with_lang;
 
 #[derive(Debug)]
 pub struct GetTaxonomyUrl {
@@ -101,19 +104,25 @@ impl TeraFn for GetPage {
 pub struct GetSection {
     base_path: PathBuf,
     library: Arc<RwLock<Library>>,
+    config: Config,
 }
 impl GetSection {
-    pub fn new(base_path: PathBuf, library: Arc<RwLock<Library>>) -> Self {
-        Self { base_path: base_path.join("content"), library }
+    pub fn new(config: Config, base_path: PathBuf, library: Arc<RwLock<Library>>) -> Self {
+        Self { base_path: base_path.join("content"), library, config }
     }
 }
 impl TeraFn for GetSection {
     fn call(&self, args: &HashMap<String, Value>) -> Result<Value> {
+        let lang =
+            optional_arg!(String, args.get("lang"), "`get_section`: `lang` must be a string.")
+                .unwrap_or_else(|| self.config.default_language.clone());
+
         let path = required_arg!(
             String,
             args.get("path"),
             "`get_section` requires a `path` argument with a string value"
         );
+        let path = make_path_with_lang(path, &lang, &self.config)?;
 
         let metadata_only = args
             .get("metadata_only")

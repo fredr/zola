@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
+use config::Config;
 use errors::{bail, Result};
 use utils::fs::is_path_in_directory;
 
@@ -56,4 +57,25 @@ pub fn search_for_file(
     } else {
         Ok(None)
     }
+}
+
+pub(crate) fn make_path_with_lang(
+    path: String,
+    lang: &str,
+    config: &Config,
+) -> libs::tera::Result<String> {
+    if lang == config.default_language {
+        return Ok(path);
+    }
+
+    if !config.other_languages().contains_key(lang) {
+        return Err(
+            format!("`{}` is not an authorized language (check config.languages).", lang).into()
+        );
+    }
+
+    let mut split_path: Vec<String> = path.split('.').map(String::from).collect();
+    let ilast = split_path.len() - 1;
+    split_path[ilast] = format!("{}.{}", lang, split_path[ilast]);
+    Ok(split_path.join("."))
 }
